@@ -1,5 +1,6 @@
 import speech_recognition as sr
 import pyttsx3
+import threading
 
 from Jarvis.features import date_time
 from Jarvis.features import launch_app
@@ -9,44 +10,79 @@ from Jarvis.features import wikipedia
 from Jarvis.features import news
 from Jarvis.features import send_email
 from Jarvis.features import google_search
-from Jarvis.features import google_calendar
 from Jarvis.features import note
 from Jarvis.features import system_stats
 from Jarvis.features import loc
-
-
-engine = pyttsx3.init('sapi5')
-voices = engine.getProperty('voices')
-engine.setProperty('voices', voices[0].id)
+from Jarvis.features import ollama_chat
+from Jarvis.config import config
 
 class JarvisAssistant:
     def __init__(self):
-        pass
+        self.voice_input_enabled = getattr(config, 'voice_input_enabled', True)
+        self.voice_retry_limit = getattr(config, 'voice_retry_limit', 2)
+        self.keyboard_fallback = getattr(config, 'keyboard_fallback', True)
+        self.voice_runtime_available = self.voice_input_enabled
+        self.tts_enabled = getattr(config, 'tts_enabled', True)
+        self.tts_rate = getattr(config, 'tts_rate', 175)
+        self.tts_voice_index = getattr(config, 'tts_voice_index', 0)
+        self._tts_lock = threading.Lock()
+        self.engine = None
+        self._init_tts_engine()
+
+    def _init_tts_engine(self):
+        try:
+            self.engine = pyttsx3.init('sapi5')
+            voices = self.engine.getProperty('voices')
+            if voices:
+                index = max(0, min(self.tts_voice_index, len(voices) - 1))
+                self.engine.setProperty('voice', voices[index].id)
+            self.engine.setProperty('rate', self.tts_rate)
+            return True
+        except Exception as e:
+            print(f"TTS init error: {e}")
+            self.engine = None
+            return False
+
+    def _text_fallback_input(self, prompt="Type command: "):
+        try:
+            return input(prompt).strip().lower()
+        except Exception:
+            return False
 
     def mic_input(self):
         """
         Fetch input from mic
         return: user's voice input as text if true, false if fail
         """
-        try:
-            r = sr.Recognizer()
-            # r.pause_threshold = 1
-            # r.adjust_for_ambient_noise(source, duration=1)
-            with sr.Microphone() as source:
-                print("Listening....")
-                r.energy_threshold = 4000
-                audio = r.listen(source)
+        if not self.voice_runtime_available:
+            return self._text_fallback_input()
+
+        recognizer = sr.Recognizer()
+        attempts = 0
+
+        while attempts <= self.voice_retry_limit:
             try:
+                with sr.Microphone() as source:
+                    print("Listening....")
+                    recognizer.energy_threshold = 4000
+                    audio = recognizer.listen(source)
+
                 print("Recognizing...")
-                command = r.recognize_google(audio, language='en-in').lower()
+                command = recognizer.recognize_google(audio, language='en-in').lower()
                 print(f'You said: {command}')
-            except:
-                print('Please try again')
-                command = self.mic_input()
-            return command
-        except Exception as e:
-            print(e)
-            return  False
+                return command
+            except Exception as e:
+                print(e)
+                attempts += 1
+                if attempts <= self.voice_retry_limit:
+                    print("Voice input failed, retrying...")
+
+        if self.keyboard_fallback:
+            print("Voice input unavailable. Falling back to keyboard input.")
+            self.voice_runtime_available = False
+            return self._text_fallback_input()
+
+        return False
 
 
     def tts(self, text):
@@ -55,15 +91,24 @@ class JarvisAssistant:
         :param text: text(String)
         :return: True/False (Play sound if True otherwise write exception to log and return  False)
         """
-        try:
-            engine.say(text)
-            engine.runAndWait()
-            engine.setProperty('rate', 175)
-            return True
-        except:
-            t = "Sorry I couldn't understand and handle this input"
-            print(t)
+        if not self.tts_enabled:
             return False
+
+        if not text:
+            return False
+
+        with self._tts_lock:
+            if self.engine is None and not self._init_tts_engine():
+                return False
+
+            try:
+                self.engine.say(text)
+                self.engine.runAndWait()
+                return True
+            except Exception as e:
+                print(f"TTS runtime error: {e}")
+                self.engine = None
+                return False
 
     def tell_me_date(self):
 
@@ -123,6 +168,12 @@ class JarvisAssistant:
         return send_email.mail(sender_email, sender_password, receiver_email, msg)
 
     def google_calendar_events(self, text):
+        try:
+            from Jarvis.features import google_calendar
+        except Exception as e:
+            print(e)
+            return False
+
         service = google_calendar.authenticate_google()
         date = google_calendar.get_date(text) 
         
@@ -147,3 +198,21 @@ class JarvisAssistant:
     def my_location(self):
         city, state, country = loc.my_location()
         return city, state, country
+
+    def ask_ollama(self, prompt):
+        return ollama_chat.ask_ollama(
+            prompt=prompt,
+            model=getattr(config, 'ollama_model', 'llama3.2'),
+            base_url=getattr(config, 'ollama_url', 'http://127.0.0.1:11434'),
+            system_prompt=getattr(
+                config,
+                'ollama_system_prompt',
+                'You are Jarvis, a concise and helpful local AI assistant.',
+            ),
+            timeout=getattr(config, 'ollama_timeout', 120),
+            num_gpu=getattr(config, 'ollama_num_gpu', -1),
+            num_ctx=getattr(config, 'ollama_num_ctx', 8192),
+            temperature=getattr(config, 'ollama_temperature', 0.6),
+            num_thread=getattr(config, 'ollama_num_thread', 0),
+            auto_select_model=getattr(config, 'ollama_auto_select_model', True),
+        )

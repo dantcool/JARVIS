@@ -11,3 +11,5 @@ credentials.json
 *.png
 *.mp4
 *dbs.txt
+user_memory.json
+learning_memory.md

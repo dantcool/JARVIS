@@ -1,94 +1,213 @@
-# JARVIS (Just a Rather Very Intelligent System)
+# JARVIS (Local Ollama Edition)
 
-#### This was my attempt to make a voice assistant similar to JARVIS (in iron man movie)
-#### Let's be honest, it's not as intelligent as in the movie, but it can do a lot of cool things and automate your daily tasks you do on your personal computers/laptops.
+This project is a local-first JARVIS-style desktop assistant.
+It runs with a GUI window, supports typed chat, and uses Ollama on your machine.
 
-## Built with
+## What’s Updated
 
-<code><img height="30" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/python/python.png"></code>
+- Main interaction is now in the **Jarvis GUI window** (`main.py`)
+- You can type directly to Jarvis in the UI chat box
+- Terminal is used for **event logging/debug output**
+- Ollama integration supports both `/api/chat` and fallback `/api/generate`
+- Local user memory added (`remember my name is ...`)
+- TTS fixed and enabled for UI responses
+- API keys are optional for cloud features; local mode works without them
+
+## Quick Start (Recommended)
+
+1. Install dependencies:
+
+     `pip install -r requirements.txt`
+
+2. Confirm Ollama is running:
+
+     - If already running, do nothing
+     - If not running, start once: `ollama serve`
+
+3. Ensure a model is available (example):
+
+     `ollama pull llama4:latest`
+
+4. Launch Jarvis UI:
+
+     `python main.py`
+
+5. In the window:
+
+     - Click **Run**
+     - Type in the chat box
+     - Press **Send**
+
+## Install Ollama
+
+Install Ollama first (one-time setup):
+
+- **Windows**
+     - Download and install from: `https://ollama.com/download/windows`
+     - After install, open a new terminal and verify:
+          - `ollama --version`
+
+- **macOS**
+     - Download installer from: `https://ollama.com/download/mac`
+     - Or with Homebrew:
+          - `brew install ollama`
+
+- **Linux**
+     - Install with the official script:
+          - `curl -fsSL https://ollama.com/install.sh | sh`
+
+Start the local Ollama server when needed:
+
+- `ollama serve`
+
+List local models:
+
+- `ollama list`
+
+## Model Guide (By GPU)
+
+Use this as a quick reference for model size vs VRAM.
+
+- **8 GB VRAM (entry/mid GPU)**
+     - Good starting models: `qwen2.5:7b`, `llama3.1:8b`
+     - Pull example: `ollama pull qwen2.5:7b`
+
+- **12–16 GB VRAM (strong mid/high GPU)**
+     - Good balance: `qwen2.5:14b`, `llama3.1:8b` (higher context)
+     - Pull example: `ollama pull qwen2.5:14b`
+
+- **20–24 GB VRAM (RTX 4090 class)**
+     - Higher quality local chat: `qwen2.5:32b` or keep `llama4:latest` if stable on your setup
+     - Pull example: `ollama pull qwen2.5:32b`
+
+- **CPU-only or low VRAM fallback**
+     - Lighter model: `phi3:mini`
+     - Pull example: `ollama pull phi3:mini`
+
+After choosing a model, set it in `Jarvis/config/config.py`:
+
+- `ollama_model = "<model-tag>"`
+
+Tip: if responses are slow or you hit memory errors, use a smaller model first, then scale up.
+
+## Current Config Defaults
+
+File: `Jarvis/config/config.py`
+
+- `ollama_auto_select_model = True` (auto-picks best available local model)
+
+## Memory (Local)
 
 
-## Features
+Auto-select behavior:
 
-#### For a cool demo of this project watch this [YouTube video](https://www.youtube.com/watch?v=oKtrHy0ERNA)
+- If `ollama_auto_select_model = True`, Jarvis checks your installed local models and uses the best available one (largest parameter size, then model size).
+- If your configured `ollama_model` exists locally, Jarvis prefers that exact model.
+- Set `ollama_auto_select_model = False` to force only your configured `ollama_model`.
 
-It can do a lot of cool things, some of them being:
+- `remember my name is <your name>`
+- `what is my name`
 
-- Greet user
-- Tell current time and date
-- Launch applications/softwares 
-- Open any website
-- Tells about weather of any city
-- Open location of any place plus tells the distance between your place and queried place
-- Tells your current system status (RAM Usage, battery health, CPU usage)
-- Tells about your upcoming events (Google Calendar)
-- Tells about any person (via Wikipedia)
-- Can search anything on Google 
-- Can play any song on YouTube
-- Tells top headlines (via Times of India)
-- Plays music
-- Send email (with subject and content)
-- Calculate any mathematical expression (example: Jarvis, calculate x + 135 - 234 = 345)
-- Answer any generic question (via Wolframalpha)
-- Take important note in notepad
-- Tells a random joke
-- Tells your IP address
-- Can switch the window
-- Can take screenshot and save it with custom filename
-- Can hide all files in a folder and also make them visible again
-- Has a cool Graphical User Interface
+Stored in: `user_memory.json` (project root)
 
-## API Keys
-To run this program you will require a bunch of API keys. Register your API key by clicking the following links
+## Obsidian Learning Notes
 
-- [OpenWeatherMap API](https://openweathermap.org/api)
-- [Wolframalpha](https://www.wolframalpha.com/)
-- [Google Calendar API](https://developers.google.com/calendar/auth)
-  
-## Installation
+Obsidian is **optional**. Jarvis can run without it and store learning notes locally.
 
-- First clone the repo
-- Make a config.py file and include the following in it:
-    ```weather_api_key = "<your_api_key>"
-    email = "<your_email>"
-    email_password = "<your_email_password>"
-    wolframalpha_id = "<your_wolframalpha_id>"
-- Copy the config.py file in Jarvis>config folder
-- Make a new python environment
-    If you are using anaconda just type ```conda create -n jarvis python==3.8.5 ``` in anaconda prompt
-- To activate the environment ``` conda activate jarvis ```
-- Navigate to the directory of your project
-- Install all the requirements by just hitting ``` pip install -r requirements.txt ```
-- Install PyAudio from wheel file by following instructions given [here](https://stackoverflow.com/a/55630212)
-- Run the program by ``` python main.py ```
-- Enjoy !!!!
+As your usage and note volume grow, Obsidian is **recommended** for better long-term organization and review.
 
-## Code Structure
+1. Set your vault path in `Jarvis/config/config.py`:
 
+     `obsidian_vault_path = "C:/Users/<you>/Documents/YourVault"`
 
-    ├── driver
-    ├── Jarvis              # Main folder for features 
-    │   ├── config          # Contains all secret API Keys
-    │   ├── features        # All functionalities of JARVIS 
-    │   └── utils           # GUI images
-    ├── __init__.py         # Definition of feature's functions
-    ├── gui.ui              # GUI file (in .ui format)
-    ├── main.py             # main driver program of Jarvis
-    ├── requirements.txt    # all dependencies of the program
+2. Use commands like:
 
-- The code structure if pretty simple. The code is completely modularized and is highly customizable
-- To add a new feature:
-  -  Make a new file in features folder, write the feature's function you want to include
-  - Add the function's definition to __init__.py
-  - Add the voice commands through which you want to invoke the function
+     - `obsidian note python decorators are functions wrapping functions`
+     - `save to obsidian review chapter 4 tomorrow`
+     - `open obsidian notes`
+     - `review obsidian notes`
 
-## Contribute
-Please read [CONTRIBUTING.md](https://github.com/Gladiator07/JARVIS/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests.
+Jarvis writes to: `<vault>/<obsidian_notes_folder>/<obsidian_memory_note>`
+
+If no vault path is set, Jarvis writes to local fallback memory:
+
+- default: `learning_memory.md` in project root
+- optional override: `local_learning_note_path` in config
+
+## Guest User Test Checklist
+
+For first-time testing on a clean machine:
+
+1. Install dependencies:
+
+     `pip install -r requirements.txt`
+
+2. Start Ollama (or confirm it is already running):
+
+     `ollama serve`
+
+3. Pull the configured model if needed:
+
+     `ollama pull llama4:latest`
+
+4. Run Jarvis:
+
+     `python main.py`
+
+5. In UI, click **Run** and test:
+
+     - Chat prompt: `hello jarvis`
+     - Fast query: `what day is today`
+     - Obsidian/local memory: `obsidian note review chapter 2 tomorrow`
+
+## TTS + Input Behavior
+
+- UI replies are spoken when `ui_speak_responses = True`
+- Voice loop is off by default in UI mode (`enable_voice_loop_in_ui = False`)
+- If mic/PyAudio is unavailable and voice input is enabled, Jarvis falls back to keyboard input
+
+## Voice Commands (Websites)
+
+To use voice commands in the GUI:
+
+- Set `enable_voice_loop_in_ui = True` in `Jarvis/config/config.py`
+- Keep `voice_input_enabled = True`
+- Run `python main.py`, click **Run**, then speak commands like:
+     - `open youtube`
+     - `open github.com`
+     - `go to reddit`
+     - `visit stackoverflow.com`
+
+Website commands now normalize plain names and domains before opening.
+
+## Optional Cloud Integrations
+
+You only need API keys/packages if you want cloud features like weather/calendar/email.
+
+- Optional extras install:
+
+    `pip install -r requirements-optional-cloud.txt`
+
+## Troubleshooting
+
+- `bind: Only one usage of each socket address...` on `ollama serve`
+    - Ollama is already running on port `11434`
+- `404 ... /api/chat`
+    - Handled by fallback to `/api/generate` in current code
+- No model response
+    - Check `ollama list`
+    - Ensure `ollama_model` in config matches an installed model
+
+## Project Layout
+
+        ├── Jarvis/
+        │   ├── config/
+        │   ├── features/
+        │   └── utils/
+        ├── main.py
+        ├── requirements.txt
+        └── requirements-optional-cloud.txt
 
 ## License
-This project is licensed under [MIT License](https://github.com/Gladiator07/JARVIS/blob/master/LICENSE) 2021 Atharva Ingle
 
-## Future Improvements
-- Generalized conversations can be made possible by incorporating Natural Language Processing
-- GUI can be made more nicer to look at and functional
-- More functionalities can be added
+This project is licensed under the [MIT License](LICENSE).

@@ -9,7 +9,9 @@ def fetch_weather(city):
     :param city: City
     :return: weather
     """
-    api_key = config.weather_api_key
+    api_key = getattr(config, "weather_api_key", "")
+    if not api_key or "<your_" in str(api_key):
+        return "Weather API key is not configured."
     units_format = "&units=metric"
 
     base_url = "http://api.openweathermap.org/data/2.5/weather?q="
