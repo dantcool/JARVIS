@@ -1,33 +1,56 @@
-import speech_recognition as sr
 import pyttsx3
 import threading
 
 from Jarvis.features import date_time
 from Jarvis.features import launch_app
 from Jarvis.features import website_open
-from Jarvis.features import weather
 from Jarvis.features import wikipedia
-from Jarvis.features import news
-from Jarvis.features import send_email
 from Jarvis.features import google_search
 from Jarvis.features import note
 from Jarvis.features import system_stats
 from Jarvis.features import loc
-from Jarvis.features import ollama_chat
+from Jarvis.services import ollama_chat
+from Jarvis.features.voice_input import VoiceInputService
 from Jarvis.config import config
 
 class JarvisAssistant:
     def __init__(self):
-        self.voice_input_enabled = getattr(config, 'voice_input_enabled', True)
-        self.voice_retry_limit = getattr(config, 'voice_retry_limit', 2)
-        self.keyboard_fallback = getattr(config, 'keyboard_fallback', True)
-        self.voice_runtime_available = self.voice_input_enabled
+        self.voice_input = VoiceInputService(config)
         self.tts_enabled = getattr(config, 'tts_enabled', True)
         self.tts_rate = getattr(config, 'tts_rate', 175)
         self.tts_voice_index = getattr(config, 'tts_voice_index', 0)
         self._tts_lock = threading.Lock()
         self.engine = None
         self._init_tts_engine()
+
+    @property
+    def keyboard_fallback(self):
+        return self.voice_input.keyboard_fallback
+
+    @keyboard_fallback.setter
+    def keyboard_fallback(self, value):
+        self.voice_input.keyboard_fallback = value
+
+    @property
+    def voice_runtime_available(self):
+        return self.voice_input.voice_runtime_available
+
+    @voice_runtime_available.setter
+    def voice_runtime_available(self, value):
+        self.voice_input.voice_runtime_available = value
+
+    @property
+    def microphone_device_index(self):
+        return self.voice_input.microphone_device_index
+
+    def list_microphones_with_diagnostics(self):
+        return self.voice_input.list_microphones_with_diagnostics()
+
+    def list_microphones(self):
+        return self.voice_input.list_microphones()
+
+    def set_microphone_device(self, device_index):
+        return self.voice_input.set_microphone_device(device_index)
 
     def _init_tts_engine(self):
         try:
@@ -43,46 +66,8 @@ class JarvisAssistant:
             self.engine = None
             return False
 
-    def _text_fallback_input(self, prompt="Type command: "):
-        try:
-            return input(prompt).strip().lower()
-        except Exception:
-            return False
-
     def mic_input(self):
-        """
-        Fetch input from mic
-        return: user's voice input as text if true, false if fail
-        """
-        if not self.voice_runtime_available:
-            return self._text_fallback_input()
-
-        recognizer = sr.Recognizer()
-        attempts = 0
-
-        while attempts <= self.voice_retry_limit:
-            try:
-                with sr.Microphone() as source:
-                    print("Listening....")
-                    recognizer.energy_threshold = 4000
-                    audio = recognizer.listen(source)
-
-                print("Recognizing...")
-                command = recognizer.recognize_google(audio, language='en-in').lower()
-                print(f'You said: {command}')
-                return command
-            except Exception as e:
-                print(e)
-                attempts += 1
-                if attempts <= self.voice_retry_limit:
-                    print("Voice input failed, retrying...")
-
-        if self.keyboard_fallback:
-            print("Voice input unavailable. Falling back to keyboard input.")
-            self.voice_runtime_available = False
-            return self._text_fallback_input()
-
-        return False
+        return self.voice_input.mic_input()
 
 
     def tts(self, text):
@@ -135,19 +120,6 @@ class JarvisAssistant:
         return website_open.website_opener(domain)
 
 
-    def weather(self, city):
-        """
-        Return weather
-        :param city: Any city of this world
-        :return: weather info as string if True, or False
-        """
-        try:
-            res = weather.fetch_weather(city)
-        except Exception as e:
-            print(e)
-            res = False
-        return res
-
     def tell_me(self, topic):
         """
         Tells about anything from wikipedia
@@ -155,35 +127,9 @@ class JarvisAssistant:
         :return: First 500 character from wikipedia if True, False if fail
         """
         return wikipedia.tell_me_about(topic)
-
-    def news(self):
-        """
-        Fetch top news of the day from google news
-        :return: news list of string if True, False if fail
-        """
-        return news.get_news()
-    
-    def send_mail(self, sender_email, sender_password, receiver_email, msg):
-
-        return send_email.mail(sender_email, sender_password, receiver_email, msg)
-
-    def google_calendar_events(self, text):
-        try:
-            from Jarvis.features import google_calendar
-        except Exception as e:
-            print(e)
-            return False
-
-        service = google_calendar.authenticate_google()
-        date = google_calendar.get_date(text) 
-        
-        if date:
-            return google_calendar.get_events(date, service)
-        else:
-            pass
     
     def search_anything_google(self, command):
-        google_search.google_search(command)
+        return google_search.google_search(command)
 
     def take_note(self, text):
         note.note(text)
@@ -215,4 +161,27 @@ class JarvisAssistant:
             temperature=getattr(config, 'ollama_temperature', 0.6),
             num_thread=getattr(config, 'ollama_num_thread', 0),
             auto_select_model=getattr(config, 'ollama_auto_select_model', True),
+            auto_route_by_prompt=getattr(config, 'ollama_auto_route_by_prompt', True),
+            model_candidates=getattr(config, 'ollama_model_candidates', None),
+            connect_timeout=getattr(config, 'ollama_connect_timeout', 5),
+            model_discovery_timeout=getattr(config, 'ollama_model_discovery_timeout', 5),
+        )
+
+    def list_ollama_models(self):
+        return ollama_chat.list_available_models(
+            base_url=getattr(config, 'ollama_url', 'http://127.0.0.1:11434'),
+            timeout=getattr(config, 'ollama_model_discovery_timeout', 5),
+        )
+
+    def preview_ollama_model(self, prompt):
+        return ollama_chat.preview_routed_model(
+            prompt=prompt,
+            model=getattr(config, 'ollama_model', 'llama3.2'),
+            base_url=getattr(config, 'ollama_url', 'http://127.0.0.1:11434'),
+            timeout=getattr(config, 'ollama_timeout', 120),
+            auto_select_model=getattr(config, 'ollama_auto_select_model', True),
+            auto_route_by_prompt=getattr(config, 'ollama_auto_route_by_prompt', True),
+            model_candidates=getattr(config, 'ollama_model_candidates', None),
+            connect_timeout=getattr(config, 'ollama_connect_timeout', 5),
+            model_discovery_timeout=getattr(config, 'ollama_model_discovery_timeout', 5),
         )

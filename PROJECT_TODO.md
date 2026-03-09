@@ -8,6 +8,20 @@
 - Basic persistent memory exists (`user_memory.json` for user name).
 - `main.py` was reduced by extracting command routing to `Jarvis/features/command_router.py`.
 
+## Product Direction (New)
+
+- [ ] **P0 - Define product positioning**: Document JARVIS as a model-agnostic AI runtime (bring your own model + JARVIS persona + local tools).
+- [ ] **P0 - Provider abstraction layer**: Add `BaseLLMProvider` interface and provider adapters (`ollama`, `openai`, future `jarvis_model`) so model backends are swappable.
+- [ ] **P0 - Persona system**: Centralize JARVIS personality/instructions in one prompt policy module used across all providers.
+- [ ] **P0 - Tool execution guardrails**: Add confirmation gates for sensitive actions (shell, delete, send email, installs).
+- [ ] **P0 - Permission model**: Introduce allow/deny categories for tools (files, network, browser, shell, apps) with secure defaults.
+- [ ] **P1 - Action transparency**: Show planned action before execution and log every executed action/result in a local audit trail.
+- [ ] **P1 - Safe autonomy controls**: Add dry-run mode, per-tool toggles, and a global emergency stop.
+- [ ] **P1 - Prompt-injection defenses**: Block external text (web/docs/email) from directly triggering high-risk tools without explicit user confirmation.
+- [ ] **P1 - Memory architecture**: Split short-term conversation memory from long-term user preferences/notes.
+- [ ] **P2 - Future custom model path**: Reserve `jarvis_model` provider slot for later fine-tune/custom model integration without frontend rewrite.
+- [ ] **P2 - Ethics and policy doc**: Add `docs/SAFETY_POLICY.md` describing consent, transparency, privacy, and non-malware constraints.
+
 ## Priority TODO (Do Next)
 
 - [ ] **P0 - Environment parity**: Ensure runtime dependencies install in active venv (`PyQt5`, `pyautogui`, `pywhatkit`, `pyjokes`).

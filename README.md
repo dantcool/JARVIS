@@ -34,7 +34,7 @@ It runs with a GUI window, supports typed chat, and uses Ollama on your machine.
 
 5. In the window:
 
-     - Click **Run**
+     - Jarvis starts automatically
      - Type in the chat box
      - Press **Send**
 
@@ -154,7 +154,7 @@ For first-time testing on a clean machine:
 
      `python main.py`
 
-5. In UI, click **Run** and test:
+5. In UI, Jarvis starts automatically. Test:
 
      - Chat prompt: `hello jarvis`
      - Fast query: `what day is today`
@@ -163,8 +163,51 @@ For first-time testing on a clean machine:
 ## TTS + Input Behavior
 
 - UI replies are spoken when `ui_speak_responses = True`
-- Voice loop is off by default in UI mode (`enable_voice_loop_in_ui = False`)
-- If mic/PyAudio is unavailable and voice input is enabled, Jarvis falls back to keyboard input
+- Voice loop is disabled by default in UI mode (`enable_voice_loop_in_ui = False`)
+- If microphone capture is unavailable and voice input is enabled, Jarvis falls back to keyboard input
+- Use the `Voice Input` button in the UI to capture one voice command on demand
+- UI status now shows `Idle`, `Listening`, `Executing`, `Thinking`, or `Error`
+
+## Voice Input Setup (Windows)
+
+Voice input now works without PyAudio by default using `SpeechRecognition` + `sounddevice`.
+
+1. Install dependencies:
+
+     `pip install -r requirements.txt`
+
+2. Default backend (recommended):
+
+     - `voice_input_backend = "sounddevice"`
+
+3. Optional fallback backend:
+
+     - `voice_input_backend = "pyaudio"` (only if PyAudio is installed and working)
+
+4. If you want to try PyAudio anyway:
+
+     `python -m pip install --upgrade pip setuptools wheel`
+
+     `pip install PyAudio`
+
+5. Tune microphone settings in `Jarvis/config/config.py` if needed:
+
+     - `microphone_device_index = None` (default device)
+     - `microphone_timeout = 5`
+     - `microphone_phrase_time_limit = 10`
+     - `microphone_adjust_for_ambient = True`
+     - `microphone_ambient_duration = 0.8`
+     - `voice_sample_rate = 16000`
+     - `voice_recognition_language = "en-US"`
+
+6. Ensure voice is enabled:
+
+     - `voice_input_enabled = True`
+     - `enable_voice_loop_in_ui = False` (recommended with the Voice Input button)
+
+If speech is not detected, increase `microphone_timeout` and `microphone_phrase_time_limit`, then retry.
+
+In the UI, use the `Microphone` dropdown and `Scan` button to select the exact input device before pressing `Voice Input`.
 
 ## Voice Commands (Websites)
 
@@ -172,7 +215,7 @@ To use voice commands in the GUI:
 
 - Set `enable_voice_loop_in_ui = True` in `Jarvis/config/config.py`
 - Keep `voice_input_enabled = True`
-- Run `python main.py`, click **Run**, then speak commands like:
+- Run `python main.py`, then speak commands like:
      - `open youtube`
      - `open github.com`
      - `go to reddit`
@@ -180,13 +223,17 @@ To use voice commands in the GUI:
 
 Website commands now normalize plain names and domains before opening.
 
-## Optional Cloud Integrations
+## Web Search Commands
 
-You only need API keys/packages if you want cloud features like weather/calendar/email.
+Jarvis can now open a browser and run web searches directly from chat or voice input.
 
-- Optional extras install:
+Try commands like:
 
-    `pip install -r requirements-optional-cloud.txt`
+- `search google for python dataclasses`
+- `search web for best sqlite gui`
+- `web search for local llm benchmarks`
+- `google weather in new york`
+- `search for pyqt threading examples`
 
 ## Troubleshooting
 
@@ -205,8 +252,7 @@ You only need API keys/packages if you want cloud features like weather/calendar
         │   ├── features/
         │   └── utils/
         ├── main.py
-        ├── requirements.txt
-        └── requirements-optional-cloud.txt
+     └── requirements.txt
 
 ## License
 

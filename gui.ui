@@ -27,7 +27,7 @@
      <string/>
     </property>
     <property name="pixmap">
-     <pixmap>Jarvis/utils/images/live_wallpaper.gif</pixmap>
+    <pixmap>Jarvis/ui/images/live_wallpaper.gif</pixmap>
     </property>
     <property name="scaledContents">
      <bool>true</bool>
@@ -80,7 +80,7 @@ font: 75 18pt &quot;MS Shell Dlg 2&quot;;</string>
      <string/>
     </property>
     <property name="pixmap">
-     <pixmap>Jarvis/utils/images/initiating.gif</pixmap>
+    <pixmap>Jarvis/ui/images/initiating.gif</pixmap>
     </property>
    </widget>
    <widget class="QTextBrowser" name="textBrowser">
